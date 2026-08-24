@@ -46,9 +46,9 @@ These workflows are public proof. Each one ran real browser automation, preserve
 
 | Scenario | Framework | Executed | Passed | Failed | Workflow | Artifact | Dashboard execution |
 |---|---|---:|---:|---:|---|---|---|
-| ShopSphere — success | Cypress / Mochawesome | 5 | 5 | 0 | [Run 32431118788](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788) | [Mochawesome report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431118788/artifacts/9429101193) | [Execution](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
-| ServiceDesk — success | Playwright / JSON | 5 | 5 | 0 | [Run 32431321053](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053) | [Playwright report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431321053/artifacts/9429173727) | [Execution](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
-| ShopSphere — functional failure | Cypress / Mochawesome | 5 | 4 | 1 | [Expected failed run 32431559619](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619) | [Mochawesome report](https://github.com/luanaabastos/qualityops-hub/actions/runs/32431559619/artifacts/9429251422) | [Execution](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
+| ShopSphere — success | Cypress / Mochawesome | 5 | 5 | 0 | [Run 32431118788](https://github.com/luanaabastos/testops-hub/actions/runs/32431118788) | [Mochawesome report](https://github.com/luanaabastos/testops-hub/actions/runs/32431118788/artifacts/9429101193) | [Execution](https://qualityops-hub.onrender.com/executions/a8a65b5d-17b2-4714-b3c1-d2192b945963) |
+| ServiceDesk — success | Playwright / JSON | 5 | 5 | 0 | [Run 32431321053](https://github.com/luanaabastos/testops-hub/actions/runs/32431321053) | [Playwright report](https://github.com/luanaabastos/testops-hub/actions/runs/32431321053/artifacts/9429173727) | [Execution](https://qualityops-hub.onrender.com/executions/6899dec4-d7d6-4fe9-ba89-7edf30b88d1c) |
+| ShopSphere — functional failure | Cypress / Mochawesome | 5 | 4 | 1 | [Expected failed run 32431559619](https://github.com/luanaabastos/testops-hub/actions/runs/32431559619) | [Mochawesome report](https://github.com/luanaabastos/testops-hub/actions/runs/32431559619/artifacts/9429251422) | [Execution](https://qualityops-hub.onrender.com/executions/af12fdee-6860-4916-a35c-9fce60022556) |
 
 The functional-failure workflow finishes red only after its report is uploaded and ingested. The official dashboard aggregate is **10 executed, 9 passed, 1 failed, 0 infrastructure errors, 90% Approval Rate and a 90% Quality Score**.
 
@@ -106,7 +106,7 @@ Browser automation stays in GitHub Actions because the hosted free tier serves t
 - **Idempotency:** CI retries return the original execution; conflicting content is rejected.
 - **External CI for browsers:** GitHub Actions runs real Cypress and Playwright while Render hosts the UI and API.
 - **Preview is not evidence:** Hosted Preview demonstrates state transitions but cannot change official metrics.
-- **Stable internal names:** package scopes, environment variables, database names and repository URLs remain `qualityops` identifiers to avoid risky migrations during the public product rename.
+- **Stable internal names:** package scopes, environment variables, database names and the hosted URL retain `qualityops` identifiers to avoid an unrelated migration during the public product and repository rename.
 
 ## Limitations
 
@@ -116,7 +116,7 @@ Browser automation stays in GitHub Actions because the hosted free tier serves t
 - There is no user authentication, role model or multi-tenancy.
 - Background demo jobs use an in-process queue without distributed recovery.
 - Video Evidence is a clearly labeled concept preview without stored recordings.
-- The repository and hosted URL still use `qualityops-hub`; a future repository rename requires a separate human decision.
+- The hosted URL and stable internal identifiers still use `qualityops-hub`; they do not change the public TestOps Hub product or repository identity.
 
 ## Live Demo
 
@@ -193,7 +193,11 @@ pnpm scan:public
 - [Security](docs/security.md)
 - [Public rename decision](docs/branding/testops-hub-rename.md)
 - [Portfolio case study](docs/portfolio/case-study.md)
+- [Public evidence index](docs/portfolio/evidence-index.md)
+- [LinkedIn launch — PT-BR](docs/portfolio/linkedin-launch-pt.md)
+- [LinkedIn launch — English](docs/portfolio/linkedin-launch-en.md)
 - [Historical v1.0.0 release notes](docs/releases/v1.0.0.md)
+- [Prepared v1.1.0 release notes](docs/releases/v1.1.0.md)
 
 ## License and disclaimer
 

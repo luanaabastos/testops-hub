@@ -1,80 +1,100 @@
-# TestOps Hub — portfolio case study
+# TestOps Hub — technical portfolio case study
 
-## Problem
+## The problem
 
-Test automation produces evidence in several places: the CI conclusion, framework-specific reports, retained artifacts, logs, and historical runs. Those sources answer different questions and are difficult to compare directly. A green or red job alone does not explain whether a failure is new, persistent, recovered, functional, or caused by infrastructure.
+Automated-test evidence is commonly split across CI conclusions, framework reports, retained artifacts, logs, and historical runs. Each source answers only part of the investigation: a red job does not explain whether the cause was functional or infrastructural, and a standalone report does not show whether a failure is new, persistent, or recovered.
 
-## Context
+This matters to QA and Quality Engineering because trustworthy decisions depend on context. A team needs to know what ran, where the evidence came from, how it compares with the previous equivalent execution, and whether the result belongs in official metrics. Reconstructing that context manually across tools adds analysis steps and makes different frameworks harder to compare.
 
-TestOps Hub is an independent, open-source portfolio project. It models three fictional products and uses only synthetic data. The goal was to demonstrate a complete, auditable path from CI reports to quality insights without claiming enterprise scale or connecting to a real organization.
+## The solution
 
-## Design goals
+TestOps Hub is an open-source portfolio platform that turns CI test reports into a normalized, traceable execution history. It receives product-authenticated reports, validates their contracts, converts framework-specific structures into one domain model, persists the result, and presents quality metrics, execution details, and regression signals in a React dashboard.
 
-- Normalize reports without erasing framework traceability.
-- Keep functional failures separate from infrastructure errors.
-- Preserve the relationship between CI, artifact, ingestion, execution, and dashboard.
-- Make repeated CI delivery safe and deterministic.
-- Keep the hosted free-tier boundary honest.
-- Present limitations and synthetic data explicitly.
+All products, users, tests, executions, and planning data are fictional and synthetic. The public GitHub Actions workflows, browser sessions, generated reports, authenticated ingestion, and PostgreSQL persistence are real technical evidence created for this portfolio project.
 
 ## Architecture
 
-GitHub Actions runs Cypress or Playwright, preserves the resulting report artifact, and submits a product-authenticated envelope to Fastify on Render. Zod validates the envelope and selects a versioned adapter. The adapter returns a normalized execution containing pipeline metadata, suites, cases, counts, durations, and sanitized diagnostics. Neon PostgreSQL stores the transaction. The React dashboard reads the same-origin API and presents the latest official results, history, and Regression Delta.
+```text
+GitHub Actions
+→ Cypress / Playwright in real browsers
+→ retained Mochawesome / Playwright JSON report
+→ authenticated Fastify ingestion API on Render
+→ versioned adapter and normalized execution
+→ Neon PostgreSQL
+→ React dashboard on Render
+```
 
-PocketWallet uses a deterministic `MOBILE_HARNESS_DEMO` report to exercise mobile normalization and explicit infrastructure-error semantics. It is not represented as a real device run.
+Browser automation runs in GitHub Actions. Render serves the application and API from one origin, while Neon provides managed PostgreSQL persistence. This keeps browser-heavy execution outside the hosted free-tier service and makes the workflow run and artifact independently inspectable.
 
-## Implementation
+## Cypress and Playwright in the same flow
 
-The monorepo contains a React/Vite frontend, Fastify API, shared TypeScript contracts, PostgreSQL migrations, fixed demo runners, and Playwright acceptance tests. Report adapters support Mochawesome, `playwright-json-v1`, and `mobile-e2e-json-v1`.
+ShopSphere uses Cypress and produces Mochawesome. ServiceDesk uses Playwright and produces the project's versioned Playwright JSON contract. Both workflows run real browser tests, retain the raw framework report as a GitHub Actions artifact, and then send an authenticated envelope to the same ingestion endpoint.
 
-Ingestion authenticates one token against one product, calculates stable identity and content hashes, and writes the execution graph in a transaction. An identical replay returns the existing execution; different content for the same identity returns HTTP 409. Official metrics use only authenticated `GITHUB_ACTIONS` executions with `EXTERNAL_CI` origin.
+The workflow does not hide a functional failure. In the ShopSphere failure scenario, it preserves and ingests the report before propagating the failed test result and ending the job red.
 
-## Challenges
+## Report normalization
 
-The hardest boundary was separating presentation from evidence. Seed data makes the interface useful before a real pipeline exists, while hosted preview demonstrates the flow on the free tier. Neither can be allowed to inflate official metrics. The application therefore keeps seeded, local-demo, and external-CI origins explicit and computes official status from persisted external evidence.
+The API validates the envelope and selects an adapter by report format and version. Adapters understand framework-specific nesting, states, durations, and error fields, then return the same normalized structure: product, pipeline metadata, suites, test cases, counts, duration, outcome, and sanitized diagnostics.
 
-A functional test failure created another important edge case: the workflow still needed to preserve its raw report and ingest it before ending red. The ShopSphere workflow records the runner conclusion, uploads and ingests the report, and only then propagates the expected failure.
+This boundary lets Cypress/Mochawesome and Playwright results be compared without presenting them as identical raw formats. Traceability back to the original workflow, job, artifact, branch, commit, framework, and format remains attached to each execution.
 
-## Trade-offs
+## Persistence and delivery safety
 
-- **In-process demo queue:** simple and bounded for one instance, but without distributed recovery.
-- **Versioned custom Playwright JSON:** explicit and stable for the project, but not a universal Playwright report standard.
-- **External browser CI:** appropriate for Render Free and public artifacts, but browser execution is not initiated by the hosted service.
-- **PostgreSQL without object storage:** normalized history is durable, while raw report retention depends on GitHub Actions or ignored local artifacts.
-- **No user identity model:** keeps the portfolio scope focused, but prevents multi-user or tenant workflows.
+The normalized execution graph is written transactionally to PostgreSQL. Product-scoped integration tokens authenticate ingestion and are stored only as salted scrypt hashes. A stable execution identity and content hash make retries deterministic: an identical replay returns the existing execution, while different content submitted for the same identity receives HTTP 409.
 
-## Security
+Only authenticated `GITHUB_ACTIONS` executions with `EXTERNAL_CI` origin contribute to official aggregates. Synthetic seed data, local demo runs, and Hosted Preview remain explicitly labeled and cannot replace or inflate official evidence.
 
-Integration tokens are product-scoped and stored only as salted scrypt hashes. Raw values are not part of report payloads. Report bodies are bounded and schema-validated, database calls are parameterized, and writes are transactional. Pipeline Lab accepts enums that map to fixed runner files and never builds arbitrary commands. Diagnostics are sanitized before persistence, production is same-origin, and defensive headers are enabled.
+## Regression Delta
 
-Public-release scans check corporate references, secret patterns, Git history, public paths, public assets, and Git identities.
+Regression Delta compares an execution with the previous comparable execution for the same product and evidence source. Test identities are matched and classified as new failures, recovered tests, persistent failures, new tests, or removed tests.
 
-## Testing strategy
+The public ShopSphere proof moves from 5/5 passed to 4/5 passed with one functional failure. The dashboard identifies that change as **1 new failure**, rather than showing only two unrelated totals.
 
-Unit tests cover quality semantics, adapters, security helpers, polling, and shared contracts. PostgreSQL integration tests cover accepted formats, valid and invalid tokens, product isolation, revoked tokens, idempotent replay, content conflicts, and demo boundaries. Playwright tests exercise complete local pipelines, primary portfolio routes, pagination, responsive overflow, and keyboard navigation. A production-like smoke suite validates migration, bootstrap, serving, readiness, and hosted behavior.
+## Public proof
 
-## CI/CD
+| Scenario | Framework | Executed | Passed | Failed | Result |
+|---|---|---:|---:|---:|---|
+| ShopSphere success | Cypress / Mochawesome | 5 | 5 | 0 | Passed |
+| ServiceDesk success | Playwright / JSON | 5 | 5 | 0 | Passed |
+| ShopSphere functional failure | Cypress / Mochawesome | 5 | 4 | 1 | Expected failed workflow |
 
-The platform workflow runs a frozen install, lint, typecheck, tests, build, scans, production smoke, and Playwright on pushes and pull requests. Three manually dispatched demo workflows keep portfolio evidence deliberate.
+The latest official result per external-CI product produces an aggregate of 10 executed, 9 passed, 1 failed, 0 infrastructure errors, a 90% Approval Rate, and a 90% Quality Score. The evidence is linked in the [public evidence index](evidence-index.md).
 
-The public browser proof consists of:
+## How it supports analysis
 
-- ShopSphere success: 5 executed, 5 passed.
-- ServiceDesk success: 5 executed, 5 passed.
-- ShopSphere functional failure: 5 executed, 4 passed, 1 failed.
+TestOps Hub consolidates outcome, framework, origin, branch, commit, report link, test-level diagnostics, and regression comparison in one navigation path. This removes the need to manually reconcile those fields across several pipeline pages for the demonstrated scenarios. The project does not claim a measured time reduction; it demonstrates a smaller and more explicit investigation surface.
 
-Reports are uploaded before ingestion. The expected functional-failure job ends red only after those evidence steps succeed.
+## Technical decisions
 
-## Outcome
+- **Versioned adapters** isolate parsing changes from HTTP routes and domain metrics.
+- **One normalized execution model** supports comparison while retaining raw-format provenance.
+- **Functional failures and infrastructure errors** remain separate quality semantics.
+- **External browser CI** provides real browser evidence without requiring browser workers on Render.
+- **Official-origin filtering** prevents preview or seeded data from affecting public metrics.
+- **Transactional idempotent ingestion** handles normal CI retries without duplicating history.
+- **Fixed, allow-listed Pipeline Lab inputs** avoid constructing commands, URLs, or paths from visitor input.
+- **Stable internal identifiers** avoid an unnecessary migration after the public product and repository rename.
 
-The hosted dashboard reports the latest official external-CI results as 10 executed, 9 passed, 1 failed, 0 infrastructure errors, 90% approval, and a 90% Quality Score. ShopSphere Regression Delta identifies one new failure. Public links connect each proof workflow to its artifact and normalized dashboard execution.
+## Limitations
 
-Live demo: https://qualityops-hub.onrender.com
+- PocketWallet is a deterministic Mobile Harness Demo, not an Android device or Appium run.
+- Render Free can cold-start and has no availability commitment.
+- Raw external-CI report retention depends on GitHub Actions; object storage is not enabled.
+- There is no user authentication, role model, multi-tenancy, or tenant isolation.
+- Background demo work uses an in-process queue without distributed recovery.
+- Rate limiting is instance-local rather than distributed.
+- Video Evidence is a labeled concept preview; recordings are not stored.
+- Automation Coverage represents mapped fictional quality scenarios, not code coverage.
 
 ## What I learned
 
-The project reinforced that trustworthy quality reporting depends more on boundaries than on charts. Origin, identity, error semantics, replay behavior, and traceability must be explicit before an aggregate metric is meaningful. It also showed that a constrained hosting plan can produce an honest architecture when browser execution, persistence, and preview behavior are separated instead of simulated.
+The main lesson was that useful quality reporting starts with evidence boundaries, not charts. Origin, identity, replay behavior, error semantics, and traceability need to be explicit before an aggregate can be trusted. The project also reinforced the value of keeping framework parsing at the edge: once results share a stable domain model, history and regression logic can remain independent of the runner that produced them.
 
-## Next possibilities
+Finally, hosting constraints can lead to a clearer architecture when they are visible. Separating external browser execution, hosted ingestion, durable persistence, and non-persisting preview behavior made the public demonstration more honest and auditable.
 
-Potential future work includes a longer-history Flaky Test Radar, validated Automation Plan import, permission-scoped user authentication, durable object storage with retention rules, and distributed job/rate-limit infrastructure. These are possibilities, not implemented features in v1.0.0.
+## Links
+
+- [Live Demo](https://qualityops-hub.onrender.com)
+- [GitHub repository](https://github.com/luanaabastos/testops-hub)
+- [Architecture documentation](../architecture.md)
+- [Public evidence index](evidence-index.md)
